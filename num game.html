@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ساعد أحمد في اختيار العدد الأولي - لعبة رياضيات تفاعلية</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: radial-gradient(circle at center, #fdfbf7 0%, #e2d1c3 100%);
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* Wooden Table Desk Effect */
+        .desk-background {
+            background-color: #8D5B4C;
+            background-image: 
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 40px),
+                linear-gradient(0deg, #6c4134 0%, #8d5b4c 50%, #5d372b 100%);
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.4);
+            border: 12px solid #4a2b21;
+        }
+
+        /* Paper Slip Effects */
+        .paper-slip {
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 3px 5px 12px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .paper-slip:hover {
+            transform: scale(1.08) rotate(0deg) translateY(-5px) !important;
+            box-shadow: 6px 12px 20px rgba(0, 0, 0, 0.3);
+            z-index: 20;
+        }
+
+        .paper-slip:active {
+            transform: scale(0.98) !important;
+        }
+
+        .paper-slip.selected-correct {
+            animation: bounceSuccess 0.6s ease forwards;
+            background: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%) !important;
+            color: white !important;
+            border-color: #388e3c !important;
+        }
+
+        .paper-slip.selected-wrong {
+            animation: shakeError 0.5s ease;
+            background: linear-gradient(135deg, #ff9999 0%, #ff4d4d 100%) !important;
+            color: white !important;
+            border-color: #d32f2f !important;
+        }
+
+        .paper-slip.selected-final {
+            box-shadow: 0 0 0 4px #fbbf24, 0 8px 16px rgba(0,0,0,0.3) !important;
+            transform: scale(1.05) !important;
+        }
+
+        /* Keyframes */
+        @keyframes bounceSuccess {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15) rotate(3deg); }
+        }
+
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px) rotate(-3deg); }
+            40%, 80% { transform: translateX(10px) rotate(3deg); }
+        }
+
+        @keyframes floatAvatar {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .animate-float {
+            animation: floatAvatar 3s ease-in-out infinite;
+        }
+
+        /* Paper textures and pins */
+        .pin {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f59e0b;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-800 justify-between">
+
+    <!-- Top Header Navigation -->
+    <header class="bg-amber-600 text-white shadow-lg border-b-4 border-amber-800">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-2">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="bg-amber-100 text-amber-800 p-2 rounded-2xl font-black text-xl shadow">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black tracking-wide">ساعد أحمد في اختيار العدد الأولي</h1>
+                    <p class="text-xs md:text-sm text-amber-100 font-semibold">مادة الرياضيات - الصف الخامس الابتدائي</p>
+                </div>
+            </div>
+
+            <!-- Header Action Buttons & Score -->
+            <div class="flex items-center gap-3">
+                <button onclick="openGuideModal()" class="bg-amber-500 hover:bg-amber-400 text-amber-95 font-bold px-3 py-1.5 rounded-xl text-sm border-2 border-amber-300 transition flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-lightbulb text-yellow-200"></i>
+                    <span>دليل الأعداد الأولية</span>
+                </button>
+                <button onclick="restartGame()" class="bg-amber-700 hover:bg-amber-800 text-white font-bold px-3 py-1.5 rounded-xl text-sm transition flex items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span class="hidden sm:inline">إعادة اللعب</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl w-full mx-auto p-3 sm:p-6 flex flex-col justify-center">
+
+        <!-- SCREEN 1: Welcome Screen -->
+        <div id="welcome-screen" class="bg-white/95 backdrop-blur rounded-3xl p-6 md:p-10 shadow-2xl border-4 border-amber-200 text-center max-w-2xl mx-auto transform transition-all duration-300">
+            <div class="w-32 h-32 mx-auto mb-4 relative animate-float">
+                <div class="bg-amber-100 rounded-full p-4 border-4 border-amber-400 shadow-inner">
+                    <img id="welcome-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=AhmedStudent&backgroundColor=b6e3f4" alt="أحمد" class="w-full h-full object-contain">
+                </div>
+                <span class="absolute -bottom-2 -right-2 bg-yellow-400 text-amber-900 rounded-full px-3 py-1 font-black text-xs shadow-md border border-white">الصف 5</span>
+            </div>
+
+            <h2 class="text-2xl md:text-3xl font-black text-slate-800 mb-3">مرحباً بك يا بطل الرياضيات! 🖐️</h2>
+            <p class="text-slate-600 text-base md:text-lg mb-6 leading-relaxed">
+                أحمد لديه مجموعة من القصاصات الورقية المبعثرة على طاولته، وعلى كل قصاصة عدد صحيح.
+                يريد أحمد اختيار <strong class="text-amber-600 font-extrabold">العدد الأولي فقط</strong> حتى يتمكن من حل الواجب، لكنه متردد ويحتاج مساعتك الذكية!
+            </p>
+
+            <div class="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 mb-6 text-right text-sm text-amber-900 space-y-2">
+                <div class="font-bold flex items-center gap-2 text-base text-amber-800">
+                    <i class="fa-solid fa-star text-yellow-500"></i>
+                    كيف تفوز في اللعبة؟
+                </div>
+                <ul class="list-disc list-inside space-y-1 text-slate-700">
+                    <li>اختر القصاصة التي تحتوي على <span class="font-bold text-amber-700">عدد أولي</span> (عدد له عاملان فقط: 1 ونفسه).</li>
+                    <li>احصل على نقاط إضافية عند الإجابة الصحيحة من <span class="font-bold text-emerald-600">المحاولة الأولى ⭐</span>.</li>
+                    <li>اجمع النقاط وانتقل بين المستويات وصولاً للتحدي النهائي <span class="font-bold text-red-600">"أنقذ أحمد!"</span>.</li>
+                </ul>
+            </div>
+
+            <button onclick="startGame()" class="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xl px-10 py-4 rounded-2xl shadow-lg border-b-4 border-emerald-700 active:translate-y-1 transition transform flex items-center justify-center gap-3 mx-auto">
+                <span>ابدأ المساعدة الآن!</span>
+                <i class="fa-solid fa-rocket text-yellow-300"></i>
+            </button>
+        </div>
+
+        <!-- SCREEN 2: Game Screen -->
+        <div id="game-screen" class="hidden flex-col gap-4">
+
+            <!-- Top Dashboard Stats -->
+            <div class="bg-white rounded-2xl p-4 shadow-md border-2 border-amber-200 flex flex-wrap justify-between items-center gap-3">
+                <!-- Level Indicator -->
+                <div class="flex items-center gap-3">
+                    <div class="bg-amber-500 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shadow">
+                        <span id="current-level-num">1</span>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-bold">المستوى الحالي</div>
+                        <div id="level-title" class="font-black text-slate-800 text-sm md:text-base">المستوى الأول: الأعداد البسيطة</div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="flex-grow max-w-xs mx-2">
+                    <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                        <span>تقدم الجولات</span>
+                        <span id="round-indicator">الجولة 1 من 4</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden p-0.5 shadow-inner">
+                        <div id="progress-bar-fill" class="bg-gradient-to-r from-amber-400 to-emerald-500 h-full rounded-full transition-all duration-500" style="width: 25%"></div>
+                    </div>
+                </div>
+
+                <!-- Stars & Score -->
+                <div class="flex items-center gap-2 bg-amber-50 px-4 py-2 rounded-xl border border-amber-200 shadow-sm">
+                    <i class="fa-solid fa-star text-yellow-500 text-xl animate-pulse"></i>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-500 font-bold block">مجموع النقاط</span>
+                        <span id="score-val" class="font-black text-amber-700 text-xl leading-none">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desk Arena & Story Avatar Bar -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
+                
+                <!-- Left/Top Character Ahmed Avatar & Dialogue -->
+                <div class="lg:col-span-1 bg-gradient-to-b from-amber-50 to-orange-50 rounded-3xl p-4 shadow-md border-2 border-amber-200 flex lg:flex-col items-center justify-between lg:justify-center text-center gap-3">
+                    <div class="relative w-24 h-24 lg:w-32 lg:h-32 flex-shrink-0 animate-float">
+                        <div class="bg-white rounded-full p-2 border-4 border-amber-300 shadow">
+                            <img id="ahmed-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=AhmedStudent&backgroundColor=b6e3f4" alt="أحمد" class="w-full h-full object-contain">
+                        </div>
+                    </div>
+                    <div class="flex-grow text-right lg:text-center">
+                        <h3 class="font-black text-amber-900 text-base mb-1" id="ahmed-status-title">أحمد يفكر... 🤔</h3>
+                        <p id="ahmed-dialogue" class="text-xs sm:text-sm text-slate-700 bg-white/80 p-3 rounded-2xl border border-amber-200 shadow-sm leading-relaxed">
+                            "ساعدني في اختيار الورقة التي تحمل عددًا أوليًا صحيحًا من الطاولة!"
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Desk Table with Paper Slips -->
+                <div class="lg:col-span-3 desk-background rounded-3xl p-6 min-h-[340px] flex flex-col justify-between relative overflow-hidden">
+                    
+                    <!-- Round Header Prompt -->
+                    <div class="bg-amber-900/80 backdrop-blur text-yellow-200 px-4 py-2 rounded-2xl text-center font-black text-sm md:text-base border border-amber-700/50 shadow mb-4 self-center max-w-md w-full">
+                        <span id="prompt-instruction">انقر على القصاصة الورقية التي تحوي <span class="text-yellow-400 text-lg">عدداً أولياً</span>:</span>
+                    </div>
+
+                    <!-- Paper Slips Container Grid -->
+                    <div id="slips-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 my-auto items-center justify-center p-2">
+                        <!-- Dynamic Paper Slips Generated via JS -->
+                    </div>
+
+                    <!-- Challenge Action Button (For Final Boss Round Only) -->
+                    <div id="final-submit-container" class="hidden text-center mt-4 z-10">
+                        <button onclick="checkFinalChallenge()" class="bg-yellow-400 hover:bg-yellow-300 text-amber-950 font-black text-lg px-8 py-3 rounded-2xl shadow-xl border-b-4 border-yellow-600 transition transform hover:scale-105 active:scale-95">
+                            <i class="fa-solid fa-check-double ml-2"></i> تأكيد الاختيارات وإعطاء الإجابة لأحمد!
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Message Banner -->
+            <div id="feedback-banner" class="hidden rounded-2xl p-4 shadow-lg border-2 transition-all transform animate-fadeIn text-right">
+                <div class="flex items-start gap-3">
+                    <div id="feedback-icon" class="text-3xl mt-1"></div>
+                    <div class="flex-grow">
+                        <h4 id="feedback-title" class="font-black text-lg"></h4>
+                        <p id="feedback-body" class="text-sm md:text-base mt-1 leading-relaxed"></p>
+                    </div>
+                    <button id="next-round-btn" onclick="nextRound()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-black px-6 py-2.5 rounded-xl text-sm shadow transition flex-shrink-0 self-center">
+                        الجولة التالية <i class="fa-solid fa-arrow-left mr-1"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- SCREEN 3: End Game Results Screen -->
+        <div id="result-screen" class="hidden bg-white/95 backdrop-blur rounded-3xl p-6 md:p-10 shadow-2xl border-4 border-amber-300 text-center max-w-2xl mx-auto">
+            <div class="w-32 h-32 mx-auto mb-4 relative">
+                <div class="bg-yellow-100 rounded-full p-4 border-4 border-yellow-400 shadow-lg">
+                    <img id="result-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=AhmedHappy&backgroundColor=b6e3f4" alt="أحمد سعيد" class="w-full h-full object-contain">
+                </div>
+                <div class="absolute -top-2 -left-2 bg-yellow-400 text-amber-900 rounded-full p-2 text-2xl shadow">🎉</div>
+            </div>
+
+            <h2 id="result-badge-title" class="text-2xl md:text-3xl font-black text-slate-800 mb-2">رائع! أصبحت خبيرًا في الأعداد الأولية! 🏆</h2>
+            <p id="result-subtitle" class="text-slate-600 text-sm md:text-base mb-6">لقد نجحت في مساعدة أحمد في اجتياز جميع التحديات بنجاح باهر!</p>
+
+            <!-- Score Cards Grid -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200">
+                    <span class="text-xs text-slate-500 font-bold block mb-1">النقاط الكلية</span>
+                    <span id="final-score" class="text-3xl md:text-4xl font-black text-amber-600">0</span>
+                    <span class="text-xs text-amber-800 font-bold block mt-1">نقطة ⭐</span>
+                </div>
+                <div class="bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-200">
+                    <span class="text-xs text-slate-500 font-bold block mb-1">نسبة الإجابات الأولى</span>
+                    <span id="final-accuracy" class="text-3xl md:text-4xl font-black text-emerald-600">100%</span>
+                    <span class="text-xs text-emerald-800 font-bold block mt-1">دقة ممتازة 👍</span>
+                </div>
+            </div>
+
+            <!-- Educational Recap -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-right text-xs md:text-sm text-slate-700 space-y-2 mb-6">
+                <div class="font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-bookmark text-amber-500"></i>
+                    تذكر دائماً ما تعلمناه مع أحمد:
+                </div>
+                <p>
+                    • <strong class="text-amber-700">العدد الأولي:</strong> هو عدد صحيح أكبر من 1، وله <strong>عاملان فقط</strong> هما: العدد (1) والعدد نفسه (مثل: 2، 3، 5، 7، 11، 13...).
+                </p>
+                <p>
+                    • <strong class="text-indigo-700">العدد غير الأولي (المؤلف):</strong> له أكثر من عاملين (مثل: 4، 6، 8، 9، 15...).
+                </p>
+                <p>
+                    • <strong class="text-rose-600">ملاحظة هامة:</strong> العدد (1) ليس عدداً أولياً لأن له عاملاً واحداً فقط! والعدد (2) هو العدد الأولي الزوجي الوحيد.
+                </p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-wrap gap-3 justify-center">
+                <button onclick="startGame()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg px-8 py-3 rounded-2xl shadow-lg border-b-4 border-emerald-700 transition transform hover:scale-105 active:scale-95 flex items-center gap-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>اللعب مرة أخرى</span>
+                </button>
+                <button onclick="openGuideModal()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-lg px-6 py-3 rounded-2xl border border-amber-300 transition">
+                    <i class="fa-solid fa-book-open ml-1"></i> مراجعة القواعد
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- PRIME NUMBERS GUIDE MODAL -->
+    <div id="guide-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-amber-300 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeGuideModal()" class="absolute top-4 left-4 text-slate-400 hover:text-slate-600 bg-slate-100 p-2 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
+                ✕
+            </button>
+            <div class="text-center mb-5">
+                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-2 text-2xl font-black">
+                    <i class="fa-solid fa-book"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800">دليل بطل الرياضيات للأعداد الأولية 🧠</h3>
+            </div>
+
+            <div class="space-y-4 text-slate-700 text-sm text-right leading-relaxed">
+                <div class="bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
+                    <h4 class="font-black text-amber-900 text-base mb-1">ما هو العدد الأولي؟</h4>
+                    <p>هو كل عدد صحيح موجب <strong>أكبر من 1</strong>، لا يقبل القسمة بدون باقٍ إلا على <span class="font-bold text-amber-700">1 وعلى نفسه فقط</span>.</p>
+                </div>
+
+                <div class="bg-blue-50 p-3.5 rounded-2xl border border-blue-200">
+                    <h4 class="font-black text-blue-900 text-base mb-1">أمثلة للأعداد الأولية تحت 50:</h4>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">2</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">3</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">5</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">7</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">11</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">13</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">17</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">19</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">23</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">29</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">31</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">37</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">41</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">43</span>
+                        <span class="bg-white px-2.5 py-1 rounded-lg border font-bold text-blue-700 shadow-sm">47</span>
+                    </div>
+                </div>
+
+                <div class="bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200">
+                    <h4 class="font-black text-emerald-900 text-base mb-1">خدع وحيل سريعة للاكتشاف 💡:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li><strong>العدد 2:</strong> هو العدد الأولي <em>الزوجي الوحيد</em>! أي عدد زوجي آخر أكبر من 2 هو غير أولي.</li>
+                        <li><strong>القابليّة للقسمة على 3:</strong> اجمع أرقام العدد، إذا كان المجموع مضاعفاً لـ 3 (مثل 51 -> 5+1=6) فهو غير أولي!</li>
+                        <li><strong>القابليّة للقسمة على 5:</strong> أي عدد آحاده 0 أو 5 (وأكبر من 5) فهو غير أولي (مثل 15, 25, 35).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <button onclick="closeGuideModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black px-8 py-2.5 rounded-xl text-base shadow">
+                    فهمت ذلك! لنعد للعب 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-slate-300 py-3 text-center text-xs font-semibold mt-auto">
+        <p>تصميم تعليمي تفاعلي لمادة الرياضيات للصف الخامس الابتدائي © 2026 - ساعد أحمد في اختيار العدد الأولي</p>
+    </footer>
+
+    <script>
+        /* SOUND SYNTHESIZER USING WEB AUDIO API */
+        class AudioEffects {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playCorrect() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.3); // C6
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+
+            playWrong() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now); // A3
+                osc.frequency.linearRampToValueAtTime(140, now + 0.25); // Lower pitch
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            playClick() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+
+            playFanfare() {
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50, 880, 1046.50];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.frequency.setValueAtTime(freq, now);
+                        gain.gain.setValueAtTime(0.2, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.25);
+                    }, idx * 120);
+                });
+            }
+        }
+
+        const soundFx = new AudioEffects();
+
+        // Paper background pastel color options
+        const paperColors = [
+            { bg: '#FFF9C4', border: '#FBC02D', pin: '#E65100', text: '#5D4037' }, // Soft Yellow
+            { bg: '#E1F5FE', border: '#0288D1', pin: '#01579B', text: '#0277BD' }, // Soft Blue
+            { bg: '#E8F5E9', border: '#388E3C', pin: '#1B5E20', text: '#2E7D32' }, // Soft Green
+            { bg: '#FCE4EC', border: '#D81B60', pin: '#880E4F', text: '#AD1457' }, // Soft Pink
+            { bg: '#F3E5F5', border: '#8E24AA', pin: '#4A148C', text: '#6A1B9A' }, // Soft Purple
+            { bg: '#FFF3E0', border: '#FB8C00', pin: '#E65100', text: '#EF6C00' }  // Soft Orange
+        ];
+
+        // Level Definitions
+        const levels = [
+            {
+                levelNum: 1,
+                title: "المستوى الأول: الأعداد البسيطة (أقل من 20)",
+                primes: [2, 3, 5, 7, 11, 13, 17, 19],
+                composites: [4, 6, 8, 9, 10, 12, 14, 15, 16, 18],
+                slipCount: 3,
+                isBoss: false
+            },
+            {
+                levelNum: 2,
+                title: "المستوى الثاني: الأعداد المتوسطة (حتى 50)",
+                primes: [23, 29, 31, 37, 41, 43, 47],
+                composites: [21, 22, 24, 25, 27, 33, 35, 39, 45, 49],
+                slipCount: 4,
+                isBoss: false
+            },
+            {
+                levelNum: 3,
+                title: "المستوى الثالث: التحدي الذكي (أعداد خادعة)",
+                primes: [53, 59, 61, 67, 71, 73, 79, 83, 89, 97],
+                composites: [51, 55, 57, 63, 65, 77, 81, 87, 91, 93, 95], // 51=3x17, 57=3x19, 91=7x13
+                slipCount: 4,
+                isBoss: false
+            },
+            {
+                levelNum: 4,
+                title: "تحدي 'أنقذ أحمد!' النهائي 🚨",
+                primesPool: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97],
+                compositesPool: [4, 6, 8, 9, 10, 12, 14, 15, 21, 25, 27, 33, 35, 49, 51, 57, 63, 77, 81, 91],
+                slipCount: 8,
+                isBoss: true
+            }
+        ];
+
+        // Game State Variables
+        let currentLevelIndex = 0;
+        let currentRoundInLevel = 0; // 0..2 for normal levels, 0 for boss level
+        let totalRoundsPerLevel = 3;
+        let score = 0;
+        let isFirstAttempt = true;
+        let totalQuestions = 0;
+        let firstTrySuccessCount = 0;
+        let currentRoundData = null;
+        let selectedBossIndices = new Set();
+
+        // Utility: Check if number is prime
+        function isPrime(n) {
+            if (n <= 1) return false;
+            if (n <= 3) return true;
+            if (n % 2 === 0 || n % 3 === 0) return false;
+            for (let i = 5; i * i <= n; i += 6) {
+                if (n % i === 0 || n % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        // Get factors of a composite number
+        function getFactors(n) {
+            let factors = [];
+            for (let i = 1; i <= n; i++) {
+                if (n % i === 0) factors.push(i);
+            }
+            return factors;
+        }
+
+        // Generate Hint for Composite Number
+        function getCompositeHint(num) {
+            if (num === 1) {
+                return "العدد 1 ليس عدداً أولياً لأن له عاملاً واحداً فقط وهو نفسه!";
+            }
+            if (num % 2 === 0 && num > 2) {
+                return `العدد ${num} عدد زوجي أكبر من 2، وبالتالي يقبل القسمة على 2 (${num} ÷ 2 = ${num/2}). الأعداد الزوجية الكبرى ليست أولية!`;
+            }
+            if (num % 3 === 0 && num > 3) {
+                const sumDigits = String(num).split('').map(Number).reduce((a,b)=>a+b, 0);
+                return `تلميح: مجموع أرقام العدد ${num} هو (${sumDigits}) وهو يقبل القسمة على 3! (${num} ÷ 3 = ${num/3}).`;
+            }
+            if (num % 5 === 0 && num > 5) {
+                return `تلميح: آحاد العدد ${num} هو (${num % 10})، وأي عدد آحاده 0 أو 5 يقبل القسمة على 5! (${num} ÷ 5 = ${num/5}).`;
+            }
+            if (num % 7 === 0 && num > 7) {
+                return `تلميح: العدد ${num} يقبل القسمة على 7! لأن 7 × ${num/7} = ${num}.`;
+            }
+            if (num % 11 === 0 && num > 11) {
+                return `تلميح: العدد ${num} يقبل القسمة على 11! لأن 11 × ${num/11} = ${num}.`;
+            }
+            if (num % 13 === 0 && num > 13) {
+                return `تلميح: العدد ${num} يقبل القسمة على 13! (13 × ${num/13} = ${num}).`;
+            }
+            if (num % 17 === 0 && num > 17) {
+                return `تلميح: خادع! العدد ${num} يقبل القسمة على 17 (17 × ${num/17} = ${num}).`;
+            }
+            if (num % 19 === 0 && num > 19) {
+                return `تلميح: خادع! العدد ${num} يقبل القسمة على 19 (19 × ${num/19} = ${num}).`;
+            }
+            
+            const factors = getFactors(num);
+            return `العدد ${num} له أكثر من عاملين! عوامله هي: [${factors.join('، ')}].`;
+        }
+
+        // Shuffle Array
+        function shuffle(array) {
+            let cur = array.slice();
+            for (let i = cur.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cur[i], cur[j]] = [cur[j], cur[i]];
+            }
+            return cur;
+        }
+
+        function startGame() {
+            soundFx.playClick();
+            score = 0;
+            currentLevelIndex = 0;
+            currentRoundInLevel = 0;
+            totalQuestions = 0;
+            firstTrySuccessCount = 0;
+
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('game-screen').classList.add('flex');
+
+            updateScoreDisplay();
+            loadRound();
+        }
+
+        function restartGame() {
+            soundFx.playClick();
+            if (confirm("هل تريد إعادة بدء اللعبة من المرحلة الأولى؟")) {
+                startGame();
+            }
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('score-val').innerText = score;
+        }
+
+        function loadRound() {
+            isFirstAttempt = true;
+            selectedBossIndices.clear();
+
+            const level = levels[currentLevelIndex];
+            document.getElementById('current-level-num').innerText = level.levelNum;
+            document.getElementById('level-title').innerText = level.title;
+
+            // Update Progress Bar
+            const totalSteps = (levels.length - 1) * totalRoundsPerLevel + 1;
+            const currentStep = currentLevelIndex < 3 ? (currentLevelIndex * totalRoundsPerLevel + currentRoundInLevel + 1) : totalSteps;
+            const percentage = Math.min(100, Math.round((currentStep / totalSteps) * 100));
+            document.getElementById('progress-bar-fill').style.width = percentage + '%';
+
+            if (level.isBoss) {
+                document.getElementById('round-indicator').innerText = 'المرحلة النهائية!';
+            } else {
+                document.getElementById('round-indicator').innerText = `الجولة ${currentRoundInLevel + 1} من ${totalRoundsPerLevel}`;
+            }
+
+            // Hide previous feedback
+            const feedbackBanner = document.getElementById('feedback-banner');
+            feedbackBanner.classList.add('hidden');
+            document.getElementById('next-round-btn').classList.add('hidden');
+
+            // Generate Round Options
+            if (!level.isBoss) {
+                document.getElementById('final-submit-container').classList.add('hidden');
+                document.getElementById('prompt-instruction').innerHTML = 'انقر على القصاصة الورقية التي تحوي <span class="text-yellow-400 text-lg">عدداً أولياً</span>:';
+
+                // Pick 1 Prime and (slipCount - 1) Composites
+                const randomPrime = level.primes[Math.floor(Math.random() * level.primes.length)];
+                const shuffledComposites = shuffle(level.composites).slice(0, level.slipCount - 1);
+
+                let items = [{ val: randomPrime, isPrime: true }];
+                shuffledComposites.forEach(c => items.push({ val: c, isPrime: false }));
+                items = shuffle(items);
+
+                currentRoundData = { items, targetPrimeCount: 1 };
+                setAhmedAvatar('AhmedThinking', 'أحمد يفكر... 🤔', `"أنا أبحث عن ورقة واحدة فقط تحمل عدداً أولياً صحيحاً. ما هي برايك؟"`);
+            } else {
+                // Final Boss Challenge: "أنقذ أحمد!"
+                document.getElementById('final-submit-container').classList.remove('hidden');
+                document.getElementById('prompt-instruction').innerHTML = '🚨 <span class="text-yellow-300 font-bold">تحدي أنقذ أحمد:</span> حدد <span class="text-emerald-300 font-extrabold underline">جميع</span> الأعداد الأولية من القصاصات، ثم اضغط تأكيد!';
+
+                // Pick 3 or 4 primes and rest composites to total 8 slips
+                const chosenPrimes = shuffle(level.primesPool).slice(0, 3);
+                const chosenComposites = shuffle(level.compositesPool).slice(0, 5);
+
+                let items = [];
+                chosenPrimes.forEach(p => items.push({ val: p, isPrime: true }));
+                chosenComposites.forEach(c => items.push({ val: c, isPrime: false }));
+                items = shuffle(items);
+
+                currentRoundData = { items, targetPrimeCount: chosenPrimes.length };
+                setAhmedAvatar('AhmedScared', 'تحدي أنقذ أحمد! 🆘', `"هناك أعداد أولية متعددة مبعثرة هنا! اختر جميع الأعداد الأولية معاً لإنقاذي!"`);
+            }
+
+            renderPaperSlips(currentRoundData.items, level.isBoss);
+        }
+
+        function renderPaperSlips(items, isBoss) {
+            const container = document.getElementById('slips-container');
+            container.innerHTML = '';
+
+            items.forEach((item, index) => {
+                const color = paperColors[index % paperColors.length];
+                const randomRot = (Math.random() * 12 - 6).toFixed(1); // Slight tilt
+
+                const slip = document.createElement('button');
+                slip.className = `paper-slip rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center font-black text-3xl sm:text-4xl shadow-lg border-2 cursor-pointer transform hover:z-20 focus:outline-none transition-transform`;
+                slip.style.backgroundColor = color.bg;
+                slip.style.borderColor = color.border;
+                slip.style.color = color.text;
+                slip.style.transform = `rotate(${randomRot}deg)`;
+                slip.dataset.index = index;
+
+                // Paper Pin
+                const pin = document.createElement('div');
+                pin.className = 'pin';
+                pin.style.backgroundColor = color.pin;
+                slip.appendChild(pin);
+
+                // Number text
+                const numText = document.createElement('span');
+                numText.className = 'mt-2 select-none font-extrabold tracking-wider';
+                numText.innerText = item.val;
+                slip.appendChild(numText);
+
+                if (!isBoss) {
+                    slip.onclick = () => handleSingleSlipClick(index, slip);
+                } else {
+                    slip.onclick = () => handleBossSlipToggle(index, slip);
+                }
+
+                container.appendChild(slip);
+            });
+        }
+
+        function setAhmedAvatar(mood, title, dialogue) {
+            const img = document.getElementById('ahmed-avatar');
+            img.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${mood}&backgroundColor=b6e3f4`;
+            document.getElementById('ahmed-status-title').innerText = title;
+            document.getElementById('ahmed-dialogue').innerText = dialogue;
+        }
+
+        function handleSingleSlipClick(index, slipElement) {
+            soundFx.playClick();
+            const item = currentRoundData.items[index];
+
+            if (item.isPrime) {
+                // CORRECT ANSWER
+                soundFx.playCorrect();
+                slipElement.classList.add('selected-correct');
+
+                // Points calculation
+                let earnedPoints = isFirstAttempt ? 100 : 50;
+                score += earnedPoints;
+                if (isFirstAttempt) firstTrySuccessCount++;
+                totalQuestions++;
+                updateScoreDisplay();
+
+                // Show Success Feedback
+                const feedbackBanner = document.getElementById('feedback-banner');
+                feedbackBanner.className = "rounded-2xl p-4 shadow-lg border-2 bg-emerald-50 border-emerald-300 text-emerald-950 flex flex-col sm:flex-row items-start gap-3 animate-fadeIn";
+                document.getElementById('feedback-icon').innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 text-3xl"></i>';
+                document.getElementById('feedback-title').innerText = `أحسنت بطل! الإجابة صحيحة 🎉 (+${earnedPoints} نقطة)`;
+                
+                const factors = getFactors(item.val);
+                document.getElementById('feedback-body').innerHTML = `
+                    العدد <strong class="text-emerald-800 font-extrabold">${item.val}</strong> هو بالفعل عدد أولي 
+                    لأنه لا يقبل القسمة إلا على 1 ونفسه فقط! (عوامله هي: 1 و ${item.val}).
+                `;
+
+                setAhmedAvatar('AhmedHappy', 'أحمد يبتسم لك! 😁', `"شكراً لك! إجابة رائعة، العدد ${item.val} هو عدد أولي بامتياز!"`);
+
+                // Disable all slips
+                disableAllSlips();
+
+                // Trigger mini confetti
+                confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+
+                document.getElementById('feedback-banner').classList.remove('hidden');
+                document.getElementById('next-round-btn').classList.remove('hidden');
+
+            } else {
+                // WRONG ANSWER
+                soundFx.playWrong();
+                slipElement.classList.add('selected-wrong');
+                isFirstAttempt = false;
+
+                const hint = getCompositeHint(item.val);
+
+                const feedbackBanner = document.getElementById('feedback-banner');
+                feedbackBanner.className = "rounded-2xl p-4 shadow-lg border-2 bg-rose-50 border-rose-300 text-rose-950 flex flex-col sm:flex-row items-start gap-3 animate-fadeIn";
+                document.getElementById('feedback-icon').innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-600 text-3xl"></i>';
+                document.getElementById('feedback-title').innerText = `حاول مرة أخرى 🔍 (العدد ${item.val} ليس أولياً)`;
+                document.getElementById('feedback-body').innerText = hint;
+
+                setAhmedAvatar('AhmedConfused', 'أحمد يفكر مجدداً... 🧐', `"ممم... اتبع التلميح بالأسفل واختر القصاصة الصحيحة!"`);
+
+                document.getElementById('feedback-banner').classList.remove('hidden');
+            }
+        }
+
+        function handleBossSlipToggle(index, slipElement) {
+            soundFx.playClick();
+            if (selectedBossIndices.has(index)) {
+                selectedBossIndices.delete(index);
+                slipElement.classList.remove('selected-final');
+            } else {
+                selectedBossIndices.add(index);
+                slipElement.classList.add('selected-final');
+            }
+        }
+
+        function checkFinalChallenge() {
+            soundFx.playClick();
+            if (selectedBossIndices.size === 0) {
+                alert("يرجى اختيار الأعداد التي تظن أنها أولية أولاً قبل الضغط على تأكيد!");
+                return;
+            }
+
+            const items = currentRoundData.items;
+            let correctSelectedCount = 0;
+            let wrongSelectedCount = 0;
+            let totalPrimes = 0;
+
+            items.forEach((item, idx) => {
+                if (item.isPrime) totalPrimes++;
+                const isSelected = selectedBossIndices.has(idx);
+
+                const slipEl = document.querySelector(`.paper-slip[data-index='${idx}']`);
+                if (isSelected && item.isPrime) {
+                    correctSelectedCount++;
+                    slipEl.classList.add('selected-correct');
+                } else if (isSelected && !item.isPrime) {
+                    wrongSelectedCount++;
+                    slipEl.classList.add('selected-wrong');
+                } else if (!isSelected && item.isPrime) {
+                    // Missed prime
+                    slipEl.style.border = '3px dashed #f59e0b';
+                }
+            });
+
+            if (correctSelectedCount === totalPrimes && wrongSelectedCount === 0) {
+                // PERFECT BOSS CLEAR
+                soundFx.playFanfare();
+                score += 300;
+                totalQuestions++;
+                firstTrySuccessCount++;
+                updateScoreDisplay();
+
+                setAhmedAvatar('AhmedHero', 'أحمد يرقص فرحاً! 🥳', `"يا لك من عبقري! لقد أنقذتني واخترت جميع الأعداد الأولية بدقة متناهية!"`);
+
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
+
+                setTimeout(() => {
+                    showFinalResults();
+                }, 2000);
+
+            } else {
+                // PARTIAL OR WRONG BOSS CLEAR
+                soundFx.playWrong();
+                score += (correctSelectedCount * 40);
+                updateScoreDisplay();
+
+                const feedbackBanner = document.getElementById('feedback-banner');
+                feedbackBanner.className = "rounded-2xl p-4 shadow-lg border-2 bg-amber-50 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start gap-3 animate-fadeIn";
+                document.getElementById('feedback-icon').innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-600 text-3xl"></i>';
+                document.getElementById('feedback-title').innerText = `نتيجة التحدي النهائي: اخترت ${correctSelectedCount} أعداد أولية من أصل ${totalPrimes}!`;
+                document.getElementById('feedback-body').innerText = `تم تمييز الإجابات الصحيحة باللون الأخضر والأخطاء باللون الأحمر. أنت بطل محارب!`;
+
+                document.getElementById('feedback-banner').classList.remove('hidden');
+
+                setTimeout(() => {
+                    showFinalResults();
+                }, 3500);
+            }
+        }
+
+        function disableAllSlips() {
+            const slips = document.querySelectorAll('.paper-slip');
+            slips.forEach(s => s.onclick = null);
+        }
+
+        function nextRound() {
+            soundFx.playClick();
+            currentRoundInLevel++;
+
+            if (currentRoundInLevel >= totalRoundsPerLevel && !levels[currentLevelIndex].isBoss) {
+                // Advance Level
+                currentLevelIndex++;
+                currentRoundInLevel = 0;
+            }
+
+            if (currentLevelIndex >= levels.length) {
+                showFinalResults();
+            } else {
+                loadRound();
+            }
+        }
+
+        function showFinalResults() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            document.getElementById('final-score').innerText = score;
+            
+            const accuracy = totalQuestions > 0 ? Math.round((firstTrySuccessCount / totalQuestions) * 100) : 100;
+            document.getElementById('final-accuracy').innerText = `${accuracy}%`;
+
+            if (score >= 500) {
+                document.getElementById('result-badge-title').innerText = '🏆 رائع جداً! أصبحت خبيرًا متوجاً في الأعداد الأولية!';
+                document.getElementById('result-subtitle').innerText = 'أظهرت مهارة استثنائية في تمييز الأعداد الأولية ومساعدة أحمد!';
+            } else {
+                document.getElementById('result-badge-title').innerText = '👏 أحسنت! محاولة ممتازة مع أحمد!';
+                document.getElementById('result-subtitle').innerText = 'واصل التمرين واللعب لتصبح أسرع وأكثر دقة في الرياضيات!';
+            }
+
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+
+        function openGuideModal() {
+            soundFx.playClick();
+            document.getElementById('guide-modal').classList.remove('hidden');
+        }
+
+        function closeGuideModal() {
+            soundFx.playClick();
+            document.getElementById('guide-modal').classList.add('hidden');
+        }
+
+        // Close modal on escape key
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeGuideModal();
+            }
+        });
+    </script>
+</body>
+</html>
